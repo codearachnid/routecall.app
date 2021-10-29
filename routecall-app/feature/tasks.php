@@ -21,6 +21,7 @@ class Tasks {
 	  'action_menu' => ['registered'=>false, 'class'=> 'Task_Action_Menu', 'file' => 'action-menu.php' ],
 	  'send_sms' => ['registered'=>false, 'class'=> 'Task_Send_Sms', 'file' => 'send-sms.php' ],
 	  'gather_voicemail' => ['registered'=>false, 'class'=> 'Task_Gather_Voicemail', 'file' => 'gather-voicemail.php' ],
+	  'target_dial' => ['registered'=>false, 'class'=> 'Task_Target_Dial', 'file' => 'target-dial.php' ],
 	];
 
   public function __construct(){

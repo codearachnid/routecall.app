@@ -13,6 +13,25 @@ class Data {
   public function __construct(){
     add_filter('posts_where', array($this,'correct_like_wildcards'));
   }
+  
+  public function update_recording_log( $data ){
+    if( empty($data['CallSid']) )
+      return false;
+      
+    $log_id = $this->get_log_by_sid( $data['CallSid'] );
+    update_post_meta($log_id, 'call_recording', $data['RecordingUrl']);
+    update_post_meta($log_id, 'call_recording_duration', $data['RecordingDuration']);
+    update_post_meta($log_id, 'call_recording_sid', $data['RecordingSid']);
+    return true;
+  }
+  
+  public function get_log_by_sid( $call_sid = null ){
+    global $wpdb;
+    if( is_null($call_sid) ){
+      $call_sid = $this->call_sid;
+    }
+    return (int) $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM $wpdb->posts WHERE 1=1 AND post_title = %s AND post_type = %s", $call_sid, self::LOG_POST_TYPE ) );
+  }
 
   public function get_channel_by_inbound( $inbound = null ){
     $lookup_channel = new \WP_Query( [

@@ -27,14 +27,27 @@ class Task_Target_Lookup extends Task {
 				'posts_per_page' => 1,
 			  ]);
 			  if( !empty($digits) && !empty($lookup_target->post ) ){
-				  $target_destination = get_post_meta($lookup_target->post->ID, 'target_destination', true);
-				  $identified_name = get_field('identified_name', $lookup_target->post->ID);
+				  $target_id = $lookup_target->post->ID;
+				  $target_destination = get_field('target_destination', $target_id); //get_post_meta($lookup_target->post->ID, 'target_destination', true);
+				  $identified_name = get_field('identified_name', $target_id);
 				  $soft_intro = str_replace("{name}", $identified_name, $attr['notify_caller_before_dial'] );
 				  $r->say( $soft_intro );
-				  $r->dial( $target_destination );
-				  // associate the tracked logs for the call to the outbound dial of the identified locksmith
+				  
+				  
+				  $dial_settings = ['action'=>get_permalink(App\Utils::get_api_setting('call_api_callback_page'))];
+				  if( get_field('call_recording', $target_id) ){
+					$dial_settings = array_merge($dial_settings,[
+						  'record' => 'record-from-answer', 
+						  'recordingStatusCallback' => get_permalink(App\Utils::get_api_setting('call_api_callback_page')), 
+						  'recordingStatusCallbackEvent' => 'completed',
+					]);
+						  
+				  }
+				  
+				  $r->dial( $target_destination, $dial_settings );
+				  // associate the tracked logs for the call to the outbound dial of the identified target
 				  $log_by_sid = App\Framework::get_instance()->track()->get_log_by_sid();
-				  add_post_meta($log_by_sid, 'log_target', $lookup_target->post->ID);
+				  add_post_meta($log_by_sid, 'log_target', $target_id);
 			  } else {
 				// print_r($attr);
 				// print_r($lookup_target);

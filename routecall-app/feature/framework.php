@@ -20,6 +20,7 @@ class Framework{
     'data' => ['class'=> __NAMESPACE__ . '\Data', 'file' => 'feature/data.php', 'autoregister' => true ],
     'tasks' => ['class'=> __NAMESPACE__ . '\Tasks', 'file' => 'feature/tasks.php', 'autoregister' => true ],
     'track' => ['class'=> __NAMESPACE__ . '\Track', 'file' => 'feature/track.php', 'autoregister' => true ],
+    'callback' => ['class'=> __NAMESPACE__ . '\Callback', 'file' => 'feature/callback.php', 'autoregister' => false ],
   ];
 
   const CHANNEL_POST_TYPE = 'routecall_channel';
@@ -48,12 +49,21 @@ class Framework{
     $this->track()->api_log($this->call_sid, $_REQUEST);
     
     $is_default_page = (bool) (get_field('call_api_landing_page', 'option')->ID == get_the_ID());
+    $is_callback_page = (bool) (get_field('call_api_callback_page', 'option')->ID == get_the_ID());
     
     if( $this->get_data()->is_caller_blocked( Utils::get_header_param('From') ) ){
       $respond = true;
       $response = $this->get_registered('tasks')->block_caller();
       // TODO track blocked caller attempt to CPT
       $this->track()->event(['action'=> __CLASS__ . '.' . __FUNCTION__ . '.block_call', 'raw' => Utils::get_header_param('ALL')]);
+    } else if($is_callback_page){
+      $status = $this->get_data()->update_recording_log( Utils::get_header_param('recording_callback') );
+      $respond = true;
+      $xml = new \SimpleXMLElement('<Response/>');
+      Utils::to_xml($xml, array_merge([
+        'Status' => $status ? 'Success' : 'Failure'
+      ],Utils::get_header_param('ALL')));
+      $response = $xml->asXML();
     } else if( $is_default_page || is_post_type_archive(self::CHANNEL_POST_TYPE) ){
     
       $route = get_field('call_api_default_channel','option');
@@ -134,6 +144,10 @@ class Framework{
   public function get_registered( $key ){
     if( !empty($this->registered[ $key ]) ){
         return $this->registered[ $key ];
+    } else if ( key_exists($key, $this->framework_lib) ) {
+      self::register_file( $this->framework_lib[$key]['file'] );
+      $this->registered[$key] = new $this->framework_lib[$key]['class']();
+      return $this->registered[$key];
     } else {
       return null;
     }
