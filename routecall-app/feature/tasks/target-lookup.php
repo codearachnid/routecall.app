@@ -10,6 +10,10 @@ class Task_Target_Lookup extends Task {
 	  public function output( $attr = null, $r = null ){
 
 		  $digits = App\Utils::get_header_param('Digits');
+		  
+		  if( empty($digits) || strlen($digits) != 5 ){
+			  return $r;
+		  }
 
 		//search targets by exact match to zipcode
 		  $lookup_target = new \WP_Query( [
@@ -26,7 +30,7 @@ class Task_Target_Lookup extends Task {
 				'post_status' => ['published'],
 				'posts_per_page' => 1,
 			  ]);
-			  if( !empty($digits) && !empty($lookup_target->post ) ){
+			  if( !empty($lookup_target->post ) ){
 				  $target_id = $lookup_target->post->ID;
 				  $target_destination = get_field('target_destination', $target_id); //get_post_meta($lookup_target->post->ID, 'target_destination', true);
 				  $identified_name = get_field('identified_name', $target_id);

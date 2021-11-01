@@ -9,6 +9,7 @@ class Tasks {
 
   private $task_lib = [
 	  'task' => ['registered'=>false, 'class'=> 'Task', 'file' => 'task.php' ],
+	  'admin_information' => ['registered'=>false, 'class'=> 'Task_Admin_Information', 'file' => 'admin-information.php' ], // DOES NOTHING IN API RESPONSE
 	  'block_caller' => ['registered'=>false, 'class'=> 'Task_Block_Caller', 'file' => 'block-caller.php' ],
 	  'hangup' => ['registered'=>false, 'class'=> 'Task_Hangup', 'file' => 'hangup.php' ],
 	  'target_lookup' => ['registered'=>false, 'class'=> 'Task_Target_Lookup', 'file' => 'target-lookup.php' ],
@@ -33,9 +34,9 @@ class Tasks {
 		  $class_folder = 'feature/tasks/';
 		  $class_name = __NAMESPACE__ . '\Tasks\\' . $this->task_lib[$task]['class'];
 		Framework::register_file( $class_folder . $this->task_lib[$task]['file']);
-		$this->task_lib['registered'] = new $class_name();
+		$this->task_lib[$task]['registered'] = new $class_name();
 	  }
-	  return $this->task_lib['registered'];
+	  return $this->task_lib[$task]['registered'];
   }
 
   public function build_tasks_response( $route_id, $selected_tasks ){

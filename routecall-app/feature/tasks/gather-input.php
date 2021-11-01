@@ -12,9 +12,14 @@ class Task_Gather_Input extends Task {
 			'finishOnKey' => $attr['finishOnKey'],
 			'numDigits' => intVal($attr['gather_number_of_digits'])
 		]);
-		$prompt = $attr['do_say'];
-		// $gather->play($prompt);
-		$gather->say($prompt);
+		$do_say = $attr['do_say'];
+		$do_play = $attr['do_play'];
+		if( !empty($do_play) ){
+			$gather->play($do_play['url']);
+		} else {
+			$gather->say($do_say);	
+		}
+
 		return $gather;
 	}
 	

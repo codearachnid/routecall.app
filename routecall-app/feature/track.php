@@ -2,20 +2,24 @@
 
 NAMESPACE RouteCallApp;
 
+use Twilio\Rest\Client;
+
 class Track {	
 	
 	private $call_sid = null;
 	const POST_TYPE = 'routecall_log';
+	private $log_to_db = TRUE;
 
   public function __construct( $call_sid = null ){
 	  $this->call_sid = $call_sid;
+	  $this->log_to_db = get_field('call_api_disable_logging', 'option') ? FALSE : TRUE;
 	  add_action("add_meta_boxes", array($this, "add_custom_meta_box") );
   }
   
   public function event($data, $call_sid = null){
 	  global $user_ID, $wpdb;
 	  
-	  if( empty($data['action']) ){
+	  if( !$this->log_to_db || empty($data['action']) ){
 		  return false;
 	  }
 	  
@@ -33,6 +37,14 @@ class Track {
 			  'post_type' => self::POST_TYPE
 		  );
 		  $log_id = wp_insert_post($new_log);
+		  
+		  add_post_meta($log_id, 'twilio_From', Utils::get_header_param('From'));
+		  add_post_meta($log_id, 'twilio_Called', Utils::get_header_param('Called'));
+		  add_post_meta($log_id, 'twilio_CallerName', Utils::get_header_param('CallerName'));
+		  add_post_meta($log_id, 'twilio_FromCountry', Utils::get_header_param('FromCountry'));
+		  add_post_meta($log_id, 'twilio_FromCity', Utils::get_header_param('FromCity'));
+		  add_post_meta($log_id, 'twilio_FromState', Utils::get_header_param('FromState'));
+		  add_post_meta($log_id, 'twilio_FromZip', Utils::get_header_param('FromZip'));
 	  }
 	  
 	  // do meta stuff
@@ -104,9 +116,50 @@ class Track {
 	  return substr(md5(time()), 0, $length);
   }
   
+  public function update_log_from_twilio( $log_id = null ){
+	  
+	  $call_sid = get_the_title( $log_id );
+	  $account_sid = Utils::get_api_setting('twilio_account_sid');
+	  $auth_token = Utils::get_api_setting('twilio_auth_token');
+	  
+	  $client= new Client($account_sid, $auth_token);
+	  
+	  $call = $client->calls($call_sid)->fetch();
+	  $recordings = $client->recordings->read(array( 'callSid' => $call_sid ), 1);
+	  
+	  
+		update_post_meta($log_id, 'twilio_From', $call->from);
+		update_post_meta($log_id, 'twilio_Called', $call->to);
+		update_post_meta($log_id, 'twilio_CallerName', $call->callerName);
+		update_post_meta($log_id, 'call_duration', $call->duration);
+		
+		//https://api.twilio.com/2010-04-01/Accounts/ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/Recordings/RExxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.mp3?Download=false
+		
+		if(!empty($recordings[0]->sid)){
+			$recording_url = sprintf('https://api.twilio.com/%s/Accounts/%s/Recordings/%s.mp3?Download=false', 
+				$call->apiVersion,
+				$call->accountSid,
+				$recordings[0]->sid);
+			update_post_meta($log_id, 'call_recording_sid', $recordings[0]->sid);
+			update_post_meta($log_id, 'call_recording', $recording_url);
+			update_post_meta($log_id, 'call_recording_duration', $recordings[0]->duration);
+		}
+		
+		
+		
+		// DEBUG
+		// echo '$recordings';
+		// print_r($recordings[0]);
+		// foreach( $recordings as $entry){
+		// print_r($entry->sid);	
+		// }
+		  
+
+  }
+  
   public function add_custom_meta_box(){
 	  add_meta_box("call_api_track_meta_api_response", "API Response", array($this,"meta_display_api_response"), self::POST_TYPE, "normal", "core", null);
-	  add_meta_box("call_api_track_meta_events", "Events", array($this,"meta_display_event_list"), self::POST_TYPE, "normal", "default", null);
+	  // add_meta_box("call_api_track_meta_events", "Events", array($this,"meta_display_event_list"), self::POST_TYPE, "normal", "default", null);
   }
   public function meta_display_api_response( $object ){
 	  $api_responses = get_post_meta($object->ID, 'RouteCallAppFramework.route_template.api_respond');

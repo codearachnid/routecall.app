@@ -5,9 +5,6 @@ NAMESPACE RouteCallApp;
 class Framework{
 
    private static $instance;
-   private $page_title = 'Route Call Application';
-   private $menu_title = 'Route Call App';
-   private $menu_slug  = __NAMESPACE__;
    private $registered = [];
    private $vendor_lib = [
      'twilio-php-main/src/Twilio/autoload.php',
@@ -20,7 +17,7 @@ class Framework{
     'data' => ['class'=> __NAMESPACE__ . '\Data', 'file' => 'feature/data.php', 'autoregister' => true ],
     'tasks' => ['class'=> __NAMESPACE__ . '\Tasks', 'file' => 'feature/tasks.php', 'autoregister' => true ],
     'track' => ['class'=> __NAMESPACE__ . '\Track', 'file' => 'feature/track.php', 'autoregister' => true ],
-    'callback' => ['class'=> __NAMESPACE__ . '\Callback', 'file' => 'feature/callback.php', 'autoregister' => false ],
+    'post_types' => ['class'=> __NAMESPACE__ . '\PostTypes', 'file' => 'feature/types.php', 'autoregister' => true ],
   ];
 
   const CHANNEL_POST_TYPE = 'routecall_channel';
@@ -28,9 +25,11 @@ class Framework{
 
   public function __construct() {
     $this->init_vendor();
-    add_action( 'admin_menu', array($this,'setup_admin_menue') );
-    add_filter( 'template_redirect', array( $this, 'route_template'), 99 );
-    add_action( 'pre_get_posts', array( $this, 'sort_cpt_by_order'), 1 );
+    // add_action( 'admin_menu', [ $this,'setup_admin_menue' ] );
+    add_filter( 'template_redirect', [ $this, 'route_template' ], 99 );
+    add_action( 'pre_get_posts', [ $this, 'sort_cpt_by_order' ], 1 );
+    add_action('acfe/fields/button/name=refresh_from_twilio', [ $this, 'refresh_log_via_ajax' ], 10, 2);
+    add_action('acf/input/admin_head', [ $this, 'acf_admin_head'] );
   }
   
   function route_template( $template_redirect ) {
@@ -162,23 +161,16 @@ class Framework{
     return false;
   }
 
-
-  function setup_admin_menue(){
-    add_menu_page(
-      $this->page_title,
-      $this->menu_title,
-      'manage_options',
-      $this->menu_slug,
-      array( $this, 'routecallapp_dashboard' ),
-      'dashicons-media-code',
-      4
-    );
+  public function acf_admin_head() {
+    ?>
+    <style type="text/css">
+  
+      .acf-field-60677d241b60b > .acf-label {display: none;}
+      .acf-field-60677d241b60b > .acf-input{width:100%!important;}
+  
+    </style>
+    <?php
   }
-
-  public function routecallapp_dashboard(){
-    echo $this->page_title;
-  }
-
 
   public static function install(){
     if( !class_exists('RouteCallApp_Install' ) ){
@@ -202,6 +194,12 @@ class Framework{
         $q->set('order', 'ASC');
       }
     
+  }
+  
+  public function refresh_log_via_ajax($field, $log_id){
+    
+    $this->track()->update_log_from_twilio( $log_id );
+    // TODO friendly user response on return
   }
   
   public function get_the_sid(){
