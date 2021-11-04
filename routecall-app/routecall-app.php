@@ -34,7 +34,7 @@ if( class_exists( 'RouteCallApp\Framework') ){
 
 
 
-  add_action( 'init', [ RouteCallApp\Framework::get_instance(),'bootstrap' ] );
+  add_action( 'plugins_loaded', [ RouteCallApp\Framework::get_instance(), 'bootstrap' ] );
 
 
 

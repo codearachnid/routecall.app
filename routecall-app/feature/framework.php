@@ -25,11 +25,10 @@ class Framework{
 
   public function __construct() {
     $this->init_vendor();
-    // add_action( 'admin_menu', [ $this,'setup_admin_menue' ] );
     add_filter( 'template_redirect', [ $this, 'route_template' ], 99 );
     add_action( 'pre_get_posts', [ $this, 'sort_cpt_by_order' ], 1 );
-    add_action('acfe/fields/button/name=refresh_from_twilio', [ $this, 'refresh_log_via_ajax' ], 10, 2);
-    add_action('acf/input/admin_head', [ $this, 'acf_admin_head'] );
+    add_action( 'acfe/fields/button/name=refresh_from_twilio', [ $this, 'refresh_log_via_ajax' ], 10, 2);
+    add_action( 'acf/input/admin_head', [ $this, 'acf_admin_head'] );
   }
   
   function route_template( $template_redirect ) {
@@ -154,7 +153,7 @@ class Framework{
   }
   
   public static function register_file( $path = null ){
-    if( !is_null($path) && file_exists( RouteCallApp_DIR . $path )){
+    if( !is_null($path) && is_readable( RouteCallApp_DIR . $path )){
       require_once RouteCallApp_DIR . $path;
       return true;
     }
